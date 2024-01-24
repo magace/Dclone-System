@@ -13,8 +13,11 @@
       "SCL-SORC-90"
     ],
     killerProfiles: [
-      "SMITER1",
-      "SMITER2"
+      "SMITE1"
     ],
+    "generalSettings": {
+      "killClone": false,
+      "dropAnni": false
+    }
   };
 })(module);

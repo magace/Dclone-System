@@ -1,0 +1,388 @@
+
+/**
+*  @filename    D2BotIPHolder.dbj
+*  @author      kolton, theBGuy, magace
+*  @desc        Lots of cleanup to do here...
+*  @desc        Entry script for IPHunter system.  This profile holds the game and rejoins it if you crash.
+*  @desc        This MUST BE STARTED BEFORE YOU ATTEMPT TO HUNT IPS.  You also need to edit libs/systems/iphunter/profileconfig.js
+*  @typedef {import("./sdk/globals")}
+*/ 
+
+include("critical.js"); // required
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Starter.Config.JoinRetryDelay = 5;
+Starter.Config.MinGameTime = 30;
+Starter.Config.CrashDelay = 1;
+Starter.Config.FTJDelay = 0;
+const {
+  JoinSettings
+} = require("./libs/systems/follow/FollowConfig");
+const profileconfig = require('../libs/systems/iphunter/profileconfig');
+// the only things we really need from these are their oog checks
+includeSystemLibs();
+
+const Overrides = require("./libs/modules/Override");
+let blankConfig = {
+  gamename: "",
+  gamepass: "",
+  requestkill: false
+};
+let mygameName;
+let mygamePass;
+if (typeof Starter.AdvancedConfig[me.profile] === "object") {
+  Object.assign(Starter.Config, Starter.AdvancedConfig[me.profile]);
+}
+delete Starter.AdvancedConfig;
+
+if (!FileTools.exists("data/" + me.profile + ".json") && DataFile.create()) {
+  Starter.firstRun = true;
+}
+
+new Overrides.Override(Starter, Starter.receiveCopyData, function (orignal, mode, msg) {
+  if (mode === 3) {
+    Starter.isUp = (me.gameReady ? "yes" : "no");
+    if (!me.gameReady) {
+      return;
+    }
+    Starter.gameInfo.gameName = (me.gamename || "");
+    Starter.gameInfo.gamePass = (me.gamepassword || "");
+  } else {
+    orignal(mode, msg);
+  }
+}).apply();
+
+const locationAction = (function () {
+  let announced = false;
+  let lastGameTick, leader = "";
+
+  const lastGame = [];
+  const Controls = require("./libs/modules/Control");
+  const {
+    locations,
+    addLocations
+  } = require("./libs/oog/Locations");
+  
+  /** @param {string} leader */
+  const joinCheck = function (leader) {
+    D2Bot.requestGame(leader);
+    delay(500);
+
+    if (!Starter.joinInfo.inGame || (lastGame.length && lastGame.indexOf(Starter.joinInfo.gameName) === -1)) {
+      D2Bot.printToConsole("Game is finished. Stopping join delay.");
+      Starter.gameInfo.gameName = "";
+      Starter.gameInfo.gamePass = "";
+
+      return true;
+    }
+
+    return false;
+  };
+
+  locations.set(sdk.game.locations.Lobby,
+    function () {
+      D2Bot.updateStatus("Lobby");
+
+      me.blockKeys = false;
+      Starter.loginRetry = 0;
+      !Starter.firstLogin && (Starter.firstLogin = true);
+
+      if (Starter.Config.JoinChannel !== "") {
+        Controls.LobbyEnterChat.click();
+
+        return;
+      }
+
+      if (Starter.inGame) {
+        if (AutoMule.outOfGameCheck()
+          || TorchSystem.outOfGameCheck()
+          || Gambling.outOfGameCheck()
+          || CraftingSystem.outOfGameCheck()) {
+          return;
+        }
+
+        console.log("updating runs");
+        D2Bot.updateRuns();
+
+        lastGameTick = getTickCount();
+        Starter.gameCount += 1;
+        Starter.lastGameStatus = "ready";
+        Starter.inGame = false;
+      }
+
+      Starter.LocationEvents.openJoinGameWindow();
+    }
+  );
+
+  
+
+  addLocations([sdk.game.locations.WaitingInLine, sdk.game.locations.CreateGame],
+    function () {
+      Controls.CancelCreateGame.click();
+      Controls.JoinGameWindow.click();
+    }
+  );
+  locations.set(sdk.game.locations.LobbyChat,
+    function () {
+      D2Bot.updateStatus("Lobby Chat");
+
+      if (Starter.inGame) {
+        if (AutoMule.outOfGameCheck()
+          || TorchSystem.outOfGameCheck()
+          || Gambling.outOfGameCheck()
+          || CraftingSystem.outOfGameCheck()) {
+          return;
+        }
+
+        console.log("updating runs");
+        D2Bot.updateRuns();
+
+        lastGameTick = getTickCount();
+        Starter.gameCount += 1;
+        Starter.lastGameStatus = "ready";
+        Starter.inGame = false;
+      }
+      if (!Starter.chatActionsDone) {
+        Starter.chatActionsDone = true;
+        ControlAction.timeoutDelay("Chat delay", Starter.Config.ChatActionsDelay * 1e3);
+        say("/j " + Starter.Config.JoinChannel);
+        delay(1000);
+        if (Starter.Config.FirstJoinMessage !== "") {
+          say(Starter.Config.FirstJoinMessage);
+          delay(500);
+        }
+      }
+      Starter.LocationEvents.openJoinGameWindow();
+    }
+  );
+  locations.set(sdk.game.locations.JoinGame,
+    function (location) {
+      D2Bot.updateStatus("Join Game");
+            // recheck
+            let waitForNewGame = true;
+            while (waitForNewGame) {
+              delay(1000);
+              print("waiting for request");
+              let jsonContent = FileAction.read("logs/ipholder/" + me.profile + ".json");
+              let jsonInfo = JSON.parse(jsonContent);
+              if (jsonInfo.requestkill && jsonInfo.gamename && jsonInfo.gamepass) {
+                print("Found Game");
+                checkForGame();
+                waitForNewGame = false;
+              } else {
+                print(jsonInfo.requestkill);
+              }
+            }
+      Controls.JoinGameName.setText(mygameName);
+      print("SETTING " + mygameName);
+      Controls.JoinGameName.setText(mygameName);
+      Controls.JoinGamePass.setText(mygamePass);
+      print("SETTING " + mygamePass);
+      Controls.JoinGame.click();
+          }
+  );
+  locations.set(sdk.game.locations.GameIsFull,
+    function () {
+      D2Bot.printToConsole("Game is full");
+      Controls.JoinGameWindow.click();
+      lastGame.push(Starter.joinInfo.gameName);
+      Starter.lastGameStatus = "ready";
+    }
+  );
+  locations.set(sdk.game.locations.GameDoesNotExist,
+    function () {
+      print("Game is not up...  Removing and closing down...");
+      let configString = JSON.stringify(blankConfig, null, 2);
+      FileAction.write("logs/ipholder/" + me.profile + ".json", configString);
+      D2Bot.restart();
+    }
+  );
+
+  locations.set(sdk.game.locations.TcpIp,
+    function () {
+      Profile().type === sdk.game.profiletype.TcpIpJoin
+        ? Controls.TcpIpJoin.click()
+        : Controls.TcpIpCancel.click();
+    }
+  );
+  locations.set(sdk.game.locations.TcpIpEnterIp,
+    function () {
+      try {
+        if (!leader) {
+          leader = [];
+
+          for (let i in JoinSettings) {
+            if (JoinSettings.hasOwnProperty(i) && typeof i === "string") {
+              for (let j = 0; j < JoinSettings[i].length; j += 1) {
+                if (JoinSettings[i][j] === me.profile || JoinSettings[i][j] === "all") {
+                  leader.push(i);
+                }
+              }
+            }
+          }
+        }
+
+        mainLoop:
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < leader.length; j++) {
+            D2Bot.requestGame(leader[j]);
+
+            if (Object.keys(Starter.joinInfo).length && Starter.joinInfo.gameName !== "") {
+              break mainLoop;
+            }
+          }
+        }
+
+        if (Controls.IPAdress.setText(Object.keys(Starter.joinInfo).length ? Starter.joinInfo.gameName : "localhost")
+          && Controls.IPAdressOk.click()
+          && Starter.locationTimeout(2e3, sdk.game.locations.TcpIpEnterIp)) {
+          getLocation() === sdk.game.locations.CharSelect && login(me.profile);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  );
+
+  return {
+    /** @param {number} loc */
+    run: function (loc) {
+      try {
+        let func = locations.get(loc);
+        if (typeof func === "function") {
+          func(loc);
+        } else if (loc !== undefined && loc !== null) {
+          console.log("Unhandled location: " + loc);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    },
+  };
+})();
+function checkForGame() {
+  
+  if (profileconfig.killerProfiles.includes(me.profile)) {
+    print("IS A HOLDER");
+    if (!FileTools.exists("logs/ipholder/" + me.profile + ".json")) {
+      print("CREATING CONFIG FILE");
+      let configString = JSON.stringify(blankConfig, null, 2);
+      FileAction.write("logs/ipholder/" + me.profile + ".json", configString);
+    } else {
+      let fileContent = FileAction.read("logs/ipholder/" + me.profile + ".json");
+      if (fileContent) {
+        try {
+          let jsonDataCheck = JSON.parse(fileContent);
+          if (jsonDataCheck.requestkill && jsonDataCheck.gamename && jsonDataCheck.gamepass) {
+            print("REQUESTED TO HOLD A GAME");
+            mygameName = jsonDataCheck.gamename;
+            mygamePass = jsonDataCheck.gamepass;
+            print("REQUESTED TO HOLD A GAME: " + mygameName + " Pass: " + mygamePass);
+          } else {
+            while (waitForGame) {
+              print("Waiting for game info.");
+              fileContent = FileAction.read("logs/ipholder/" + me.profile + ".json");
+              jsonDataCheck = JSON.parse(fileContent);
+              waitForGame = false;
+              delay(1000);
+            }
+          }
+        } catch (err) {
+          print("Error parsing JSON from file: " + err);
+        }
+      } else {
+        print("File is empty or not found.");
+      }
+    }
+  }
+}
+
+
+function main () {
+  debugLog(me.profile);
+  addEventListener("copydata", Starter.receiveCopyData);
+  addEventListener("scriptmsg", Starter.scriptMsgEvent);
+
+  while (!Starter.handle) {
+    delay(100);
+  }
+  
+  let waitForGame = true;
+
+  DataFile.updateStats("handle", Starter.handle);
+  D2Bot.init();
+  load("threads/heartbeat.js");
+
+  while (!Object.keys(Starter.gameInfo).length) {
+    D2Bot.requestGameInfo();
+    delay(500);
+  }
+  if (!FileTools.exists("logs/ipholder/" + me.profile + ".json")) {
+    print("CREATING CONFIG FILE");
+    let configString = JSON.stringify(blankConfig, null, 2);
+    FileAction.write("logs/ipholder/" + me.profile + ".json", configString);
+  }  
+  while (waitForGame) {
+    delay(1000);
+    print("waiting for request");
+    let jsonContent = FileAction.read("logs/ipholder/" + me.profile + ".json");
+    let jsonInfo = JSON.parse(jsonContent);
+    if (jsonInfo.requestkill && jsonInfo.gamename && jsonInfo.gamepass) {
+      print("Found Game");
+      checkForGame();
+      waitForGame = false;
+    } else {
+      print(jsonInfo.requestkill);
+    }
+
+  }
+  Starter.gameCount = (DataFile.getStats().runs + 1 || 1);
+
+  if (Starter.gameInfo.error) {
+    delay(200);
+
+    if (!!DataFile.getStats().debugInfo) {
+      Starter.gameInfo.crashInfo = DataFile.getStats().debugInfo;
+
+      D2Bot.printToConsole(
+        "Crash Info: Script: " + JSON.parse(Starter.gameInfo.crashInfo).currScript
+        + " Area: " + JSON.parse(Starter.gameInfo.crashInfo).area,
+        sdk.colors.D2Bot.Gray
+      );
+    }
+
+    ControlAction.timeoutDelay("Crash Delay", Starter.Config.CrashDelay * 1e3);
+    D2Bot.updateRuns();
+  }
+
+  DataFile.updateStats("debugInfo", JSON.stringify({ currScript: "none", area: "out of game" }));
+
+  while (!Object.keys(Starter.profileInfo).length) {
+    D2Bot.getProfile();
+    console.log("Getting Profile");
+    delay(500);
+  }
+
+  while (true) {
+    // returns true before actually in game so we can't only use this check
+    while (me.ingame) {
+      // returns false when switching acts so we can't use while
+      if (me.gameReady) {
+        if (!Starter.inGame) {
+          console.log("ÿc4Updating Status");
+          Starter.lastGameStatus = "ingame";
+          Starter.inGame = true;
+          Starter.gameStart = getTickCount();
+
+          DataFile.updateStats("runs", Starter.gameCount);
+        }
+
+        D2Bot.updateStatus(Starter.profileInfo.charName + " | Game: " + (me.gamename || "singleplayer") + Starter.timer(Starter.gameStart));
+      }
+
+      delay(1000);
+    }
+
+    locationAction.run(getLocation());
+    delay(1000);
+  }
+}
