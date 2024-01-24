@@ -5,8 +5,8 @@
 */
 
 function IPHolder() {
-  let logname = "Magace"; //  DONT FORGET TO SET THIS TO YOUR USERNAME ON d2soj.com
-  let logD2soj = true;
+  let logname = ""; //  DONT FORGET TO SET THIS TO YOUR USERNAME ON d2soj.com
+  let logD2soj = false;
   let ladderOnly = true;
   let hellOnly = true;
   let useBeep = false;

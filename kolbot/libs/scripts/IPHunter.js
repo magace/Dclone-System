@@ -9,8 +9,8 @@
 
 function IPHunter() {
   let searchip = [] // This was removed from char config files.  You must set it here or in profileOverrides below.
-  let logname = "Magace"; //  DONT FORGET TO SET THIS TO YOUR USERNAME ON d2soj.com
-  let logD2soj = true;
+  let logname = ""; //  DONT FORGET TO SET THIS TO YOUR USERNAME ON d2soj.com
+  let logD2soj = false;
   let ladderOnly = true;
   let hellOnly = true;
   let useBeep = false;
