@@ -1,6 +1,14 @@
 /* eslint-disable indent */
 // Paladin config file
-
+// THESE ARE JUST EXAMPLES NOT INTENDED FOR REAL USE ADD Scripts.DcloneKiller = true; To YOUR OWN CONFIG FILE
+// THESE ARE JUST EXAMPLES NOT INTENDED FOR REAL USE ADD Scripts.DcloneKiller = true; To YOUR OWN CONFIG FILE
+// THESE ARE JUST EXAMPLES NOT INTENDED FOR REAL USE ADD Scripts.DcloneKiller = true; To YOUR OWN CONFIG FILE
+// THESE ARE JUST EXAMPLES NOT INTENDED FOR REAL USE ADD Scripts.DcloneKiller = true; To YOUR OWN CONFIG FILE
+// THESE ARE JUST EXAMPLES NOT INTENDED FOR REAL USE ADD Scripts.DcloneKiller = true; To YOUR OWN CONFIG FILE
+// THESE ARE JUST EXAMPLES NOT INTENDED FOR REAL USE ADD Scripts.DcloneKiller = true; To YOUR OWN CONFIG FILE
+// THESE ARE JUST EXAMPLES NOT INTENDED FOR REAL USE ADD Scripts.DcloneKiller = true; To YOUR OWN CONFIG FILE
+// THESE ARE JUST EXAMPLES NOT INTENDED FOR REAL USE ADD Scripts.DcloneKiller = true; To YOUR OWN CONFIG FILE
+// THESE ARE JUST EXAMPLES NOT INTENDED FOR REAL USE ADD Scripts.DcloneKiller = true; To YOUR OWN CONFIG FILE
 /* Brief instructions:
  * Use any IDE to modify these files, Visual Studio Code (recommended), Atom, Sublime Text 3 (good), NotePad++ (not recommended)
  * 
