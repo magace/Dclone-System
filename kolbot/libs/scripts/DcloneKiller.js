@@ -8,7 +8,7 @@
 function DcloneKiller () {
   let anniWait = true;
   let dropAnni = false;
-  const holderConfig = require('../../systems/iphunter/profileConfig');
+  const holderConfig = require('../../systems/dclone/profileConfig');
   if (holderConfig.generalSettings.dropAnni) {
     dropAnni = true;
   } else {
@@ -38,7 +38,7 @@ function DcloneKiller () {
         Anni.drop();
         say("!Thanks for using D2Soj.com!")
         let configString = JSON.stringify(blankConfig, null, 2);
-        FileAction.write("logs/ipholder/" + me.profile + ".json", configString);
+        FileAction.write("logs/dclone/" + me.profile + ".json", configString);
         if (stopHolderProfile) {
           say("Anni Done");
           delay(2000);
@@ -50,7 +50,7 @@ function DcloneKiller () {
           delay(2000);
         }
         let configString = JSON.stringify(blankConfig, null, 2);
-        FileAction.write("logs/ipholder/" + me.profile + ".json", configString);
+        FileAction.write("logs/dclone/" + me.profile + ".json", configString);
         if (AutoMule.getInfo() && AutoMule.getInfo().hasOwnProperty("torchMuleInfo")) {
           scriptBroadcast("muleAnni");
         } 
@@ -62,7 +62,7 @@ function DcloneKiller () {
         delay(2000);
       }
       let configString = JSON.stringify(blankConfig, null, 2);
-      FileAction.write("logs/ipholder/" + me.profile + ".json", configString);
+      FileAction.write("logs/dclone/" + me.profile + ".json", configString);
       quit();    
     }
   }

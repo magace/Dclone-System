@@ -1,10 +1,10 @@
 
 /**
-*  @filename    D2BotIPHolder.dbj
+*  @filename    D2BotIPKiller.dbj
 *  @author      kolton, theBGuy, magace
 *  @desc        Lots of cleanup to do here...
-*  @desc        Entry script for IPHunter system.  This profile holds the game and rejoins it if you crash.
-*  @desc        This MUST BE STARTED BEFORE YOU ATTEMPT TO HUNT IPS.  You also need to edit libs/systems/iphunter/profileconfig.js
+*  @desc        Entry script for Dclone system.  This profile joins games witha  dclone killer to auto kill clone or on request.
+*  @desc        This MUST BE STARTED BEFORE YOU ATTEMPT TO HUNT IPS.  You also need to edit libs/systems/dclone/profileconfig.js
 *  @typedef {import("./sdk/globals")}
 */ 
 
@@ -17,7 +17,7 @@ Starter.Config.FTJDelay = 0;
 const {
   JoinSettings
 } = require("./libs/systems/follow/FollowConfig");
-const profileconfig = require('../libs/systems/iphunter/profileconfig');
+const profileconfig = require('../libs/systems/dclone/profileconfig');
 // the only things we really need from these are their oog checks
 includeSystemLibs();
 
@@ -162,7 +162,7 @@ const locationAction = (function () {
             while (waitForNewGame) {
               delay(1000);
               print("waiting for request");
-              let jsonContent = FileAction.read("logs/ipholder/" + me.profile + ".json");
+              let jsonContent = FileAction.read("logs/dclone/" + me.profile + ".json");
               let jsonInfo = JSON.parse(jsonContent);
               if (jsonInfo.requestkill && jsonInfo.gamename && jsonInfo.gamepass) {
                 print("Found Game");
@@ -192,7 +192,7 @@ const locationAction = (function () {
     function () {
       print("Game is not up...  Removing and closing down...");
       let configString = JSON.stringify(blankConfig, null, 2);
-      FileAction.write("logs/ipholder/" + me.profile + ".json", configString);
+      FileAction.write("logs/dclone/" + me.profile + ".json", configString);
       D2Bot.restart();
     }
   );
@@ -263,12 +263,12 @@ function checkForGame() {
   
   if (profileconfig.killerProfiles.includes(me.profile)) {
     print("IS A HOLDER");
-    if (!FileTools.exists("logs/ipholder/" + me.profile + ".json")) {
+    if (!FileTools.exists("logs/dclone/" + me.profile + ".json")) {
       print("CREATING CONFIG FILE");
       let configString = JSON.stringify(blankConfig, null, 2);
-      FileAction.write("logs/ipholder/" + me.profile + ".json", configString);
+      FileAction.write("logs/dclone/" + me.profile + ".json", configString);
     } else {
-      let fileContent = FileAction.read("logs/ipholder/" + me.profile + ".json");
+      let fileContent = FileAction.read("logs/dclone/" + me.profile + ".json");
       if (fileContent) {
         try {
           let jsonDataCheck = JSON.parse(fileContent);
@@ -280,7 +280,7 @@ function checkForGame() {
           } else {
             while (waitForGame) {
               print("Waiting for game info.");
-              fileContent = FileAction.read("logs/ipholder/" + me.profile + ".json");
+              fileContent = FileAction.read("logs/dclone/" + me.profile + ".json");
               jsonDataCheck = JSON.parse(fileContent);
               waitForGame = false;
               delay(1000);
@@ -316,15 +316,15 @@ function main () {
     D2Bot.requestGameInfo();
     delay(500);
   }
-  if (!FileTools.exists("logs/ipholder/" + me.profile + ".json")) {
+  if (!FileTools.exists("logs/dclone/" + me.profile + ".json")) {
     print("CREATING CONFIG FILE");
     let configString = JSON.stringify(blankConfig, null, 2);
-    FileAction.write("logs/ipholder/" + me.profile + ".json", configString);
+    FileAction.write("logs/dclone/" + me.profile + ".json", configString);
   }  
   while (waitForGame) {
     delay(1000);
     print("waiting for request");
-    let jsonContent = FileAction.read("logs/ipholder/" + me.profile + ".json");
+    let jsonContent = FileAction.read("logs/dclone/" + me.profile + ".json");
     let jsonInfo = JSON.parse(jsonContent);
     if (jsonInfo.requestkill && jsonInfo.gamename && jsonInfo.gamepass) {
       print("Found Game");

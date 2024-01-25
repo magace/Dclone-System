@@ -9,8 +9,8 @@
 
 function IPHunter() {
   let searchip = [] // This was removed from char config files.  You must set it here or in profileOverrides below.
-  let logname = ""; //  DONT FORGET TO SET THIS TO YOUR USERNAME ON d2soj.com
-  let logD2soj = false;
+  let logname = "Magace"; //  DONT FORGET TO SET THIS TO YOUR USERNAME ON d2soj.com
+  let logD2soj = true;
   let ladderOnly = true;
   let hellOnly = true;
   let useBeep = false;
@@ -28,11 +28,11 @@ function IPHunter() {
   let myProfile = me.profile;
   let curRealm = me.realm.toLowerCase()
   let ip = Number(me.gameserverip.split(".")[3]);
-  const holderConfig = require('../../systems/iphunter/profileConfig');
+  const holderConfig = require('../../systems/dclone/profileConfig');
   this.checkAndCreateOverride = function() {
     for (let i = 0; i < holderConfig.holderProfiles.length; i++) {
       let potentialHolder = holderConfig.holderProfiles[i];
-      let logPath = "logs/ipholder/" + potentialHolder + ".json";
+      let logPath = "logs/dclone/" + potentialHolder + ".json";
       if (FileTools.exists(logPath)) {
         print(logPath + " Found");
         let fileContent = FileAction.read(logPath);
@@ -60,7 +60,7 @@ function IPHunter() {
           D2Bot.printToConsole("Error parsing JSON from file" +  logPath + " " + err);
         }
       } else {
-        D2Bot.printToConsole("NO FILE FOUND IN: logs/ipholder/" + potentialHolder + ".json");
+        D2Bot.printToConsole("NO FILE FOUND IN: logs/dclone/" + potentialHolder + ".json");
       }
     }
   };

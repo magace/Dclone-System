@@ -15,7 +15,8 @@ function IPHolder() {
   let loopDelay = 1000; // Origional script was causing some users CPU to spike.
   let useRealm = "useast"; // useast uswest europe
   // END OF USER CONFIG
-  const holderConfig = require('../../systems/iphunter/profileConfig');
+  let helperLoaded = false;
+  const holderConfig = require('../../systems/dclone/profileConfig');
   if (holderConfig.generalSettings.killClone) {
     autoKillOverride = true;
   } else {
@@ -28,10 +29,10 @@ function IPHolder() {
     isused: false,
     requestkill: false
   };
-  let jsonContent = FileAction.read("logs/ipholder/" + me.profile + ".json");
+  let jsonContent = FileAction.read("logs/dclone/" + me.profile + ".json");
   let jsonInfo = JSON.parse(jsonContent);
   let loadAutoKiller = jsonInfo.requestkill;
-  let diabloWalked = true;
+  let diabloWalked = false;
   let searchip = []
   Config.Silence = false;
   me.maxgametime = 0;
@@ -46,7 +47,6 @@ function IPHolder() {
   let myProfile = me.profile;
   let curRealm = me.realm.toLowerCase()
   let ip = Number(me.gameserverip.split(".")[3]);
-
   this.chatEvent = function (nick, msg) {
     if (nick) {
       var lowerMsg = msg.toLowerCase();
@@ -60,7 +60,7 @@ function IPHolder() {
       switch (msg) {
         case "Anni Done":
           let configString = JSON.stringify(blankConfig, null, 2);
-          FileAction.write("logs/ipholder/" + me.profile + ".json", configString);
+          FileAction.write("logs/dclone/" + me.profile + ".json", configString);
           D2Bot.restart();
       }
     }
@@ -72,7 +72,6 @@ function IPHolder() {
       say("Welcome if you need help type helpme and I will bring a smiter in to kill.");
       break;      
     case 0x11: // "%Param1 Stones of Jordan Sold to Merchants"
-
       break;
     case 0x12: // "Diablo Walks the Earth"
       diabloWalked = true;
@@ -84,12 +83,15 @@ function IPHolder() {
   addEventListener("gameevent", this.gameEvent);
   this.checkAndLoadKiller = function() {
     if (holderConfig.killerProfiles.length <= 0) {
-      say("No killers found...")
+      say("No killers setup...")
       return;
     }
     for (let i = 0; i < holderConfig.killerProfiles.length; i++) {
+      if (helperLoaded) {
+        return;
+      }
       let potentialKiller = holderConfig.killerProfiles[i];
-      let logPath = "logs/ipholder/" + potentialKiller + ".json";
+      let logPath = "logs/dclone/" + potentialKiller + ".json";
       print("CHECKING FOR AVALIABLE KILLERS " + potentialKiller);
       if (FileTools.exists(logPath)) {
         print(logPath + " Found");
@@ -103,17 +105,18 @@ function IPHolder() {
             jsonData.requestkill = true;
             let updatedJsonString = JSON.stringify(jsonData);
             FileAction.write(logPath, updatedJsonString);
-            D2Bot.start(requestedPlayer);
+            helperLoaded = true;
             return;
           }
         } catch (err) {
           D2Bot.printToConsole("Error parsing JSON from file" +  logPath + " " + err);
         }
       } else {
-        D2Bot.printToConsole("NO FILE FOUND IN: logs/ipholder/" + potentialKiller + ".json");
+        D2Bot.printToConsole("NO FILE FOUND IN: logs/dclone/" + potentialKiller + ".json");
       }
     }
-    say("No free clone killers please try again in a few minutes.");
+    say("!No free clone killers please try again in a few minutes.");
+    delay(10000);
     return;
   }
   this.checkIp = function() {
@@ -149,7 +152,7 @@ function IPHolder() {
       for (let i = (12 * 9); i > 0; i -= 1) {
         me.overhead(":D IP found! - [" + ip + "] Next movement in: " + i + " sec.");
         delay(loopDelay);
-        jsonContent = FileAction.read("logs/ipholder/" + me.profile + ".json");
+        jsonContent = FileAction.read("logs/dclone/" + me.profile + ".json");
         jsonInfo = JSON.parse(jsonContent);
         loadAutoKiller = jsonInfo.requestkill;
         if (loadAutoKiller || autoKillOverride) {
@@ -200,6 +203,6 @@ function IPHolder() {
     this.checkIp();
   }
   let configString = JSON.stringify(blankConfig, null, 2);
-  FileAction.write("logs/ipholder/" + me.profile + ".json", configString);
+  FileAction.write("logs/dclone/" + me.profile + ".json", configString);
   return true;
 }
