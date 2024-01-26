@@ -2,19 +2,15 @@
 *  @filename    DcloneKiller.js
 *  @author      kolton, magace
 *  @desc        Go to Palace Cellar level 3 and kill Diablo Clone.
-*
+*  @credits     theBguy, kolton for refrences and stolen work. :)
 */
 
 function DcloneKiller () {
   let anniWait = true;
-  let dropAnni = false;
+  let dropAnni = holderConfig.killerSettings.dropAnni;
   const holderConfig = require('../../systems/dclone/profileConfig');
-  if (holderConfig.generalSettings.dropAnni) {
-    dropAnni = true;
-  } else {
-    dropAnni = false;
-  }
-  let stopHolderProfile = true;
+  let dropMsg = holderConfig.killerSettings.dropAnniMsg;
+  let stopHolderProfile = holderConfig.killerSettings.stopHolderProfile;
   let blankConfig = {
     gamename: "",
     gamepass: "",
@@ -26,6 +22,7 @@ function DcloneKiller () {
     throw new Error("Failed to move to Palace Cellar");
   }
   Attack.kill(sdk.monsters.DiabloClone);
+  delay(2000); // Probably not needed
   while (anniWait) {
     me.overhead("Looking for ANNI");
     let Anni = getUnits(sdk.unittype.Item, sdk.items.SmallCharm)
@@ -36,7 +33,7 @@ function DcloneKiller () {
         Town.goToTown(1);
         Town.move("stash");
         Anni.drop();
-        say("!Thanks for using D2Soj.com!")
+        say(dropMsg);
         let configString = JSON.stringify(blankConfig, null, 2);
         FileAction.write("logs/dclone/" + me.profile + ".json", configString);
         if (stopHolderProfile) {

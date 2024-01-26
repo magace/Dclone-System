@@ -1,38 +1,38 @@
 /**
 *  @filename    IPHunter.js
 *  @author      kolton, Mercoory, magace
-*  @desc        search for a "hot" IP and stop if the correct server is found it can load a holder into the game.
+*  @desc        search for a "hot" IP and stop if the correct server is found
 *  @changes     2020.01 - more beeps and movements (anti drop measure) when IP is found; overhead messages with countdown timer; logs to D2Bot console
-*  @changes     Magace: Added logging to d2soj, more options, now part of iphunter system that can load aditional holder into the game.
+*  @changes     Magace: Removed use of setting IP in charconfigs, added some more options, logs games to d2soj.com
 *
 */
 
 function IPHunter() {
-  let searchip = [] // This was removed from char config files.  You must set it here or in profileOverrides below.
-  let logname = "Magace"; //  DONT FORGET TO SET THIS TO YOUR USERNAME ON d2soj.com
-  let logD2soj = true;
-  let ladderOnly = true;
-  let hellOnly = true;
-  let useBeep = false;
-  let loopDelay = 1000;
-  let useRealm = "useast"; // useast uswest europe
-  Config.Silence = false;
-  //  Profile Overrides for specific profile settings.
-  let profileOverrides = [
-    // Profile Overrides can be used for setting specific profiles settings.
-    // EXAMPLE OVERRIDES:
-    //{ "profile": "SCL-SORC-1", "ip": "78", "ladder": "ladder", "realm": "useast", "hellOnly": true }
-    //{ "profile": "SCNL-SORC-1", "ip": "91", "ladder": "nonladder", "realm": "useast", "hellOnly": false }
-  ]
 
-  let myProfile = me.profile;
-  let curRealm = me.realm.toLowerCase()
   let ip = Number(me.gameserverip.split(".")[3]);
   const holderConfig = require('../../systems/dclone/profileConfig');
+  let searchip = holderConfig.hunterSettings.searchIP;
+  let logname = holderConfig.generalSettings.D2sojLogName;
+  let logD2soj = holderConfig.generalSettings.logToD2soj;
+  let ladderOnly = holderConfig.holderSettings.ladderOnly;
+  let hellOnly = holderConfig.holderSettings.hellOnly;
+  let useBeep = holderConfig.holderSettings.useBeep;
+  let loopDelay = holderConfig.holderSettings.loopDelay;
+  let useRealm = holderConfig.holderSettings.useRealm;
+  Config.Silence = false;
+  let profileOverrides = holderConfig.profileOvverrides;
+  let myProfile = me.profile;
+  let curRealm = me.realm.toLowerCase()
+  let holderLoaded = false;
+
   this.checkAndCreateOverride = function() {
+    if (holderLoaded) {
+      return true;
+    }
     for (let i = 0; i < holderConfig.holderProfiles.length; i++) {
       let potentialHolder = holderConfig.holderProfiles[i];
       let logPath = "logs/dclone/" + potentialHolder + ".json";
+  
       if (FileTools.exists(logPath)) {
         print(logPath + " Found");
         let fileContent = FileAction.read(logPath);
@@ -55,15 +55,20 @@ function IPHunter() {
             let updatedJsonString = JSON.stringify(jsonData);
             FileAction.write(logPath, updatedJsonString);
             print("Updated and waiting on holder:" + potentialHolder);
+            holderLoaded = true;
+            return true;
           }
         } catch (err) {
-          D2Bot.printToConsole("Error parsing JSON from file" +  logPath + " " + err);
+          print("Error parsing JSON from file" +  logPath + " " + err);
         }
       } else {
         D2Bot.printToConsole("NO FILE FOUND IN: logs/dclone/" + potentialHolder + ".json");
+        return false;
       }
     }
+    return true;
   };
+
   this.chatEvent = function (nick, msg) {
     if (nick) {
       switch (msg) {
@@ -72,6 +77,7 @@ function IPHunter() {
       }
     }
   };
+
   this.checkIp = function() {
     D2Bot.printToConsole("IPHunter: IP found! - [" + ip + "] Game is : " + me.gamename + "//" + me.gamepassword, 7);
     print("IP found! - [" + ip + "] Game is : " + me.gamename + "//" + me.gamepassword);
@@ -85,7 +91,7 @@ function IPHunter() {
       if (useBeep) {
         beep();
       }
-      delay(250);
+      delay(loopDelay);
     }
     while (true) {
       me.overhead(":D IP found! - [" + ip + "]");
@@ -94,11 +100,11 @@ function IPHunter() {
           say("/w *D2SOJ " + ".loggame " + Number(me.gameserverip.split(".")[3]) + ":" + me.profile + ":" + me.ladder + ":" + me.gamename + ":" + me.gamepassword + ":" + logname);
         }
         Town.move("waypoint");
-        delay(250);
+        delay(loopDelay);
         Town.move("stash");
-        delay(250);
+        delay(loopDelay);
         sendPacket(1, 0x40);
-        delay(250);
+        delay(loopDelay);
       } catch (e) {
         // ensure it doesnt leave game by failing to walk due to desyncing.
       }
@@ -107,7 +113,11 @@ function IPHunter() {
         delay(loopDelay);
       }
     }
-  }; 
+  };
+  if (logD2soj) {
+    say("/w *D2SOJ " + ".logip " + Number(me.gameserverip.split(".")[3]) + ":" + me.ladder);
+    delay(1000);
+  }
   let profileOverride = profileOverrides.find(override => override.profile === myProfile);
   if (profileOverride) {
     if (profileOverride.ladder === "nonladder") {

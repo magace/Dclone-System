@@ -12,9 +12,14 @@
     killerProfiles: [
       "SMITE1"
     ],
+    sojSellers: [
+      "SOJSELLER1",
+      "SOJSELLER2"
+    ],
     "generalSettings": {
-      "killClone": false,
-      "dropAnni": false
+      "killClone": false, // This will automatically try to load one of the killerProfiles when dclone walks
+      "dropAnni": false,  // When set to false the killer will mule the anni when set to true it will drop in a1 by stash.  Public walks?
+      "sellerAdmin": "FU" // CHARNAME of admin that can request sojholders to join game and sell sojs. If he says "sellsojs" in game it will try to load a profile.  IDK best way to do this yet.
     }
   };
 })(module);

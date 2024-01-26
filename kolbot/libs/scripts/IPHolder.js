@@ -2,25 +2,26 @@
 *  @filename    IPHolder.js
 *  @author      kolton, Mercoory, thebguy, magace
 *  @desc        IP Holder script used to ensure you stay in the game you want to hold
+*  @credits     theBguy, kolton for refrences and stolen work. :)
 */
 
 function IPHolder() {
-  let logname = "Magace"; //  DONT FORGET TO SET THIS TO YOUR USERNAME ON d2soj.com
-  let logD2soj = true;
-  let ladderOnly = true;
-  let hellOnly = true;
-  let useBeep = false;
-  let autoKillOverride = false; // This will force autokiller to come if set to true.
-  let closeHunter = true;  // Make the hunter leave game once the IP is held?
-  let loopDelay = 1000; // Origional script was causing some users CPU to spike.
-  let useRealm = "useast"; // useast uswest europe
-  // END OF USER CONFIG
-  let helperLoaded = false;
+  let ip = Number(me.gameserverip.split(".")[3]);
   const holderConfig = require('../../systems/dclone/profileConfig');
-  if (holderConfig.generalSettings.killClone) {
+  let logname = holderConfig.generalSettings.D2sojLogName;
+  let logD2soj = holderConfig.generalSettings.logToD2soj;
+  let ladderOnly = holderConfig.holderSettings.ladderOnly;
+  let hellOnly = holderConfig.holderSettings.hellOnly;
+  let useBeep = holderConfig.holderSettings.useBeep;
+  let closeHunter = holderConfig.holderSettings.closeHunter;
+  let loopDelay = holderConfig.holderSettings.loopDelay;
+  let useRealm = holderConfig.holderSettings.useRealm;
+  let bringSojCommand = holderConfig.sojsellerSettings.bringSojCommand;
+  let requestHelpCommand = holderConfig.killerSettings.requestHelpCommand
+  let helperLoaded = false;
+  let autoKillOverride = false;
+  if (holderConfig.killerSettings.killClone) {
     autoKillOverride = true;
-  } else {
-    autoKillOverride = false;
   }
   let blankConfig = {
     gamename: "",
@@ -33,8 +34,12 @@ function IPHolder() {
   let jsonInfo = JSON.parse(jsonContent);
   let loadAutoKiller = jsonInfo.requestkill;
   let diabloWalked = false;
-  let searchip = []
+  let searchip = [];
   Config.Silence = false;
+  Config.StopOnDClone = false; // Go to town and idle as soon as Diablo walks the Earth
+  Config.SoJWaitTime = 0; // Time in minutes to wait for another SoJ sale before leaving game. 0 = disabled
+  Config.KillDclone = false; // Go to Palace Cellar 3 and try to kill Diablo Clone. Pointless if you already have Annihilus.
+  Config.DCloneQuit = false; 
   me.maxgametime = 0;
   D2Bot.printToConsole(jsonInfo.profileovveride);
   let profileOverrides = [];
@@ -46,11 +51,10 @@ function IPHolder() {
   }
   let myProfile = me.profile;
   let curRealm = me.realm.toLowerCase()
-  let ip = Number(me.gameserverip.split(".")[3]);
   this.chatEvent = function (nick, msg) {
     if (nick) {
       var lowerMsg = msg.toLowerCase();
-      if (lowerMsg.startsWith("helpme")) {
+      if (lowerMsg.startsWith(requestHelpCommand)) {
         if (diabloWalked) {
           this.checkAndLoadKiller();
         } else {
@@ -62,6 +66,15 @@ function IPHolder() {
           let configString = JSON.stringify(blankConfig, null, 2);
           FileAction.write("logs/dclone/" + me.profile + ".json", configString);
           D2Bot.restart();
+        case bringSojCommand:
+          if (nick === holderConfig.sojsellerSettings.sellerAdmin) {
+            say("!Time to sell some sojs");
+            this.checkAndLoadSeller();
+          } else {
+            say("!" + nick + " are you a admin???");
+          }
+          
+          break;        
       }
     }
   };
@@ -69,16 +82,24 @@ function IPHolder() {
     switch (mode) {
       
     case 0x02:  //join
-      say("Welcome if you need help type helpme and I will bring a smiter in to kill.");
+      say("Welcome if you need help type " + requestHelpCommand +" and I will bring a smiter in to kill. Once you are finished you may type: Anni Done");
+      delay("3000")
       break;      
     case 0x11: // "%Param1 Stones of Jordan Sold to Merchants"
+      if (logD2soj) {
+        say("/w *D2SOJ " + ".logsale " + me.gameserverip.split(".")[3] + ":" + me.ladder + ":" + param1 + ":" + logname);
+        delay(3000);
+      }
       break;
     case 0x12: // "Diablo Walks the Earth"
       diabloWalked = true;
+      if (logD2soj) {
+        say("/w *D2SOJ .logwalk " + me.gameserverip.split(".")[3] + ":" + me.ladder + ":" + "unknown" + ":" + logname + ":" + "Walk");
+        delay(3000);
+      }
       break;
     }
   };
-
   addEventListener("chatmsg", this.chatEvent);
   addEventListener("gameevent", this.gameEvent);
   this.checkAndLoadKiller = function() {
@@ -118,7 +139,44 @@ function IPHolder() {
     say("!No free clone killers please try again in a few minutes.");
     delay(10000);
     return;
-  }
+  };
+  this.checkAndLoadSeller = function() {
+    if (holderConfig.sojSellers.length <= 0) {
+      say("No Sellers setup...")
+      return;
+    }
+    for (let i = 0; i < holderConfig.sojSellers.length; i++) {
+      if (diabloWalked) {
+        return;
+      }
+      let potentialSeller = holderConfig.sojSellers[i];
+      let logPath = "logs/dclone/" + potentialSeller + ".json";
+      print("CHECKING FOR AVALIABLE KILLERS " + potentialSeller);
+      if (FileTools.exists(logPath)) {
+        print(logPath + " Found");
+        let fileContent = FileAction.read(logPath);
+        try {
+          let jsonData = JSON.parse(fileContent);
+          if (!jsonData.requestSell) {
+            print("Found available holder:" + potentialSeller);
+            jsonData.gamename = me.gamename;
+            jsonData.gamepass = me.gamepassword;
+            jsonData.requestSell = true;
+            let updatedJsonString = JSON.stringify(jsonData);
+            FileAction.write(logPath, updatedJsonString);
+            say("!SOJ SELLERS ARE ON THE WAY!!");
+          }
+        } catch (err) {
+          D2Bot.printToConsole("Error parsing JSON from file" +  logPath + " " + err);
+        }
+      } else {
+        D2Bot.printToConsole("NO FILE FOUND IN: logs/dclone/" + potentialSeller + ".json");
+      }
+    }
+    say("!No free soj sellers found?");
+    delay(10000);
+    return;
+  };
   this.checkIp = function() {
     D2Bot.printToConsole("IPHunter: IP found! - [" + ip + "] Game is : " + me.gamename + "//" + me.gamepassword, 7);
     print("IP found! - [" + ip + "] Game is : " + me.gamename + "//" + me.gamepassword);
@@ -199,7 +257,6 @@ function IPHolder() {
       say("release IP");
       delay(3000);
     }
-
     this.checkIp();
   }
   let configString = JSON.stringify(blankConfig, null, 2);

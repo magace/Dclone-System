@@ -4,10 +4,10 @@ const CustomConfig = {
 
 		Multiple entries are separated by commas
 	*/
-  // Below are how I use the custom configs.
   "ipholder": generateCustomConfigs("SCL-SORC-", 60, 90),
   "barbholder": generateCustomConfigs("SCL-BARB-", 0, 35),
-  "smiters": ["SMITE1", "SMITE2", "SMITE3","SMITE4"]
+  "smiters": ["SMITE1", "SMITE2", "SMITE3","SMITE4"],
+  "sojseller": ["SOJSELLER1", "SOJSELLER2"]
 };
 
 function generateCustomConfigs(enabledBase, startIndex, endIndex) {
